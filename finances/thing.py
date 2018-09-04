@@ -1,2 +1,5 @@
 def test01():
-    return 'rick sanchez'
+    return 'stupid face'
+
+def test02():
+    return 'wtf'
