@@ -17,22 +17,60 @@ class MongoDataManager( DataManager ):
         mongo_client = MongoClient( 'finances-mongodb' )
         return  mongo_client.finances_db       
 
+    def get_untagged_transactions( self ):
+        transactions = []
+
+        db = self.get_database()
+
+        accounts = []
+        results = db.transactions.find( { 'tag' : { "$exists": False } } )
+        for result in results:
+            transaction = Transaction()
+            transaction.account = result[ 'account' ]
+            transaction.amount = result[ 'amount' ]
+            transaction.balance = result[ 'balance' ]
+            transaction.date = result[ 'date' ]
+            transaction.description = result[ 'description' ]
+            transaction.type = result[ 'type' ]
+
+            transactions.append( transaction )
+
+        return transactions
+
+    def get_tags( _self ):
+        db = _self.get_database()
+
+        tags = []
+        results = db.tags.find()
+        for result in results:
+            tag = Tag()
+            tag.name = result[ 'name' ]
+            tag.pattern = result[ 'pattern' ]
+            tag.income_vs_expense = result[ 'income_vs_expense' ]
+            tag.account = result[ 'account' ]
+
+            tags.append( tag )
+
+        return tags
+
+    def upsert_tag( _self, _tag ):
+        db = _self.get_database()
+
+        row = {}
+        row[ 'name' ] = _tag.name
+        row[ 'pattern' ] = _tag.pattern
+        row[ 'income_vs_expense' ] = _tag.income_vs_expense
+        row[ 'account' ] = _tag.account
+
+        db.tags.update(
+            row,
+            {
+                "$set": row,
+            },
+            upsert = True
+        )
+
     def upsert_transactions( self, _account, _transactions ):
-        #mongo_client = MongoClient( 'finances-mongodb' )
-        #db = mongo_client.finances_db
-        #result = db.test_transactions.insert( { "name":"dave", "age":"34" } )
-
-        #temp = ""
-        #for transaction in _transactions:
-        #    temp += transaction.type + ','
-        #    temp += str( transaction.date ) + ','
-        #    temp += str( transaction.amount ) + ','
-        #    temp += str( transaction.balance ) + ','
-        #    temp += transaction.description
-        #    temp += "\n##########################\n"
-
-        #mongo_client = MongoClient( 'finances-mongodb' )
-        #db = mongo_client.finances_db
         db = self.get_database()
     
         new_transaction_count = 0
@@ -59,7 +97,6 @@ class MongoDataManager( DataManager ):
             else:
                 new_transaction_count += 1
 
-        #return "upserting transactions into mongodb"
         result = {}
         result[ 'updated_transaction_count' ] = updated_transaction_count
         result[ 'new_transaction_count' ] = new_transaction_count
@@ -224,4 +261,20 @@ class CategorizedTotal:
 
 #class InvalidResultException( Exception ):
 #    pass
+
+class Transaction:
+    def __init__( self ):
+        self.account = ''
+        self.amount = None
+        self.balance = None
+        self.date = ''
+        self.description = ''
+        self.type = ''
+
+class Tag:
+    def __init__( _self ):
+        _self.name = None
+        _self.pattern = None
+        _self.income_vs_expense = None
+        _self.account = None
 

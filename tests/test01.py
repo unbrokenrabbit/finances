@@ -23,8 +23,14 @@ def test01():
     monthly_income_vs_expenses_model_manager = finances.datamodel.MonthlyIncomeVsExpensesModelManager( data_manager )
     monthly_income_vs_expenses_model = monthly_income_vs_expenses_model_manager.build_monthly_income_vs_expenses_model( monthly_evaluation_criteria_list )
 
+    # DEBUG
+    print( 'monthly income vs expenses model: ' + str( monthly_income_vs_expenses_model ) )
+
     chart_builder = finances.graphs.ChartBuilder()
     for monthly_evaluation in monthly_income_vs_expenses_model.monthly_evaluations:
+        # DEBUG
+        print( 'monthly evaluation: ' + str( monthly_evaluation ) )
+
         path_to_monthly_income_vs_expenses_bar_chart = chart_builder.build_monthly_income_vs_expenses_bar_chart( monthly_evaluation )
 
     # DEBUG
