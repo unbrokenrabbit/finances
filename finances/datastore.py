@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from pymongo import MongoClient
 import pymongo
+from bson.objectid import ObjectId
 import finances.dates
 
 class DataManager( ABC ):
@@ -44,6 +45,7 @@ class MongoDataManager( DataManager ):
         results = db.tags.find()
         for result in results:
             tag = Tag()
+            tag.id = result[ '_id' ]
             tag.name = result[ 'name' ]
             tag.pattern = result[ 'pattern' ]
             tag.income_vs_expense = result[ 'income_vs_expense' ]
@@ -69,6 +71,56 @@ class MongoDataManager( DataManager ):
             },
             upsert = True
         )
+
+    def apply_tags( _self ):
+        _self.strip_tags()
+
+        db = _self.get_database()
+
+        tags = db.tags.find()
+
+        for tag in tags:
+            tag_name = tag[ 'name' ]
+            tag_pattern = tag[ 'pattern' ]
+            tag_account = tag[ 'account' ]
+            tag_income_vs_expense = tag[ 'income_vs_expense' ]
+
+            find_clause = {}
+            find_clause[ 'description' ] = { '$regex': tag_pattern }
+            find_clause[ 'account' ] = tag_account
+
+            if( tag_income_vs_expense == 'income' ):
+                find_clause[ 'amount' ] = { '$gte': 0 }
+            elif( tag_income_vs_expense == 'expense' ):
+                find_clause[ 'amount' ] = { '$lte': 0 }
+
+            results = db.transactions.update(
+                find_clause,
+                {
+                    "$set":
+                    {
+                        "tag": tag_name
+                    }
+                },
+                multi=True
+            )
+
+    def strip_tags( _self ):
+        db = _self.get_database()
+
+        db.transactions.update_many(
+            {},
+            {
+                '$unset':
+                {
+                    'tag': ''
+                }
+            }
+        )
+
+    def delete_tag( _self, _tag_id ):
+        db = _self.get_database()
+        result = db.tags.delete_one( {'_id': ObjectId( _tag_id ) } )
 
     def upsert_transactions( self, _account, _transactions ):
         db = self.get_database()
@@ -273,6 +325,7 @@ class Transaction:
 
 class Tag:
     def __init__( _self ):
+        _self.id = None
         _self.name = None
         _self.pattern = None
         _self.income_vs_expense = None
